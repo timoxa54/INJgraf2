@@ -1,33 +1,19 @@
-﻿/*
-
-    Copyright 2010 Etay Meiri
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-    Tutorial 11 - Concatenating transformation2
-*/
-
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <string.h>
 #include <assert.h>
 #include <math.h>
 #include <GL/glew.h>
 #include <GL/freeglut.h>
 
+#include "pipeline.h"
+
+#define WINDOW_WIDTH 1024
+#define WINDOW_HEIGHT 768
+
 GLuint VBO;
 GLuint IBO;
 GLuint gWorldLocation;
+
 
 
 static const char* pVS = "                                                          \n\
@@ -57,128 +43,18 @@ void main()                                                                     
     FragColor = Color;                                                              \n\
 }";
 
-
-#ifndef MATH_3D_H
-#define	MATH_3D_H
-
-#include <math.h>
-
-#define ToRadian(x) ((x) * M_PI / 180.0f)
-#define ToDegree(x) ((x) * 180.0f / M_PI)
-
-struct Vector3f
-{
-    float x;
-    float y;
-    float z;
-
-    Vector3f()
-    {
-    }
-
-    Vector3f(float _x, float _y, float _z)
-    {
-        x = _x;
-        y = _y;
-        z = _z;
-    }
-};
-
-class Matrix4f
-{
-public:
-    float m[4][4];
-
-    Matrix4f()
-    {
-    }
-
-
-    inline void InitIdentity()
-    {
-        m[0][0] = 1.0f; m[0][1] = 0.0f; m[0][2] = 0.0f; m[0][3] = 0.0f;
-        m[1][0] = 0.0f; m[1][1] = 1.0f; m[1][2] = 0.0f; m[1][3] = 0.0f;
-        m[2][0] = 0.0f; m[2][1] = 0.0f; m[2][2] = 1.0f; m[2][3] = 0.0f;
-        m[3][0] = 0.0f; m[3][1] = 0.0f; m[3][2] = 0.0f; m[3][3] = 1.0f;
-    }
-
-    inline Matrix4f operator*(const Matrix4f& Right) const
-    {
-        Matrix4f Ret;
-
-        for (unsigned int i = 0; i < 4; i++) {
-            for (unsigned int j = 0; j < 4; j++) {
-                Ret.m[i][j] = m[i][0] * Right.m[0][j] +
-                    m[i][1] * Right.m[1][j] +
-                    m[i][2] * Right.m[2][j] +
-                    m[i][3] * Right.m[3][j];
-            }
-        }
-
-        return Ret;
-    }
-};
-
-
-#endif	/* MATH_3D_H */
-
-class Pipeline
-{
-public:
-    Pipeline()
-    {
-        m_scale = Vector3f(1.0f, 1.0f, 1.0f);
-        m_worldPos = Vector3f(0.0f, 0.0f, 0.0f);
-        m_rotateInfo = Vector3f(0.0f, 0.0f, 0.0f);
-    }
-
-    void Scale(float ScaleX, float ScaleY, float ScaleZ)
-    {
-        m_scale.x = ScaleX;
-        m_scale.y = ScaleY;
-        m_scale.z = ScaleZ;
-    }
-
-    void WorldPos(float x, float y, float z)
-    {
-        m_worldPos.x = x;
-        m_worldPos.y = y;
-        m_worldPos.z = z;
-    }
-
-    void Rotate(float RotateX, float RotateY, float RotateZ)
-    {
-        m_rotateInfo.x = RotateX;
-        m_rotateInfo.y = RotateY;
-        m_rotateInfo.z = RotateZ;
-    }
-
-    const Matrix4f* GetTrans();
-
-private:
-    void InitScaleTransform(Matrix4f& m) const;
-    void InitRotateTransform(Matrix4f& m) const;
-    void InitTranslationTransform(Matrix4f& m) const;
-
-    Vector3f m_scale;
-    Vector3f m_worldPos;
-    Vector3f m_rotateInfo;
-
-    Matrix4f m_transformation;
-};
-
 static void RenderSceneCB()
 {
     glClear(GL_COLOR_BUFFER_BIT);
 
     static float Scale = 0.0f;
 
-    Scale += 0.001f;
+    Scale += 0.1f;
 
     Pipeline p;
-    p.Scale(sinf(Scale * 0.1f), sinf(Scale * 0.1f), sinf(Scale * 0.1f));
-    p.WorldPos(sinf(Scale), 0.0f, 0.0f);
-    p.Rotate(sinf(Scale) * 90.0f, sinf(Scale) * 90.0f, sinf(Scale) * 90.0f);
+    p.Rotate(0.0f, Scale, 0.0f);
+    p.WorldPos(0.0f, 0.0f, 5.0f);
+    p.SetPerspectiveProj(30.0f, WINDOW_WIDTH, WINDOW_HEIGHT, 1.0f, 100.0f);
 
     glUniformMatrix4fv(gWorldLocation, 1, GL_TRUE, (const GLfloat*)p.GetTrans());
 
@@ -204,9 +80,9 @@ static void InitializeGlutCallbacks()
 static void CreateVertexBuffer()
 {
     Vector3f Vertices[4];
-    Vertices[0] = Vector3f(-1.0f, -1.0f, 0.0f);
-    Vertices[1] = Vector3f(0.0f, -1.0f, 1.0f);
-    Vertices[2] = Vector3f(1.0f, -1.0f, 0.0f);
+    Vertices[0] = Vector3f(-1.0f, -1.0f, 0.5773f);
+    Vertices[1] = Vector3f(0.0f, -1.0f, -1.15475);
+    Vertices[2] = Vector3f(1.0f, -1.0f, 0.5773f);
     Vertices[3] = Vector3f(0.0f, 1.0f, 0.0f);
 
     glGenBuffers(1, &VBO);
@@ -294,9 +170,9 @@ int main(int argc, char** argv)
 {
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
-    glutInitWindowSize(1024, 768);
+    glutInitWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT);
     glutInitWindowPosition(100, 100);
-    glutCreateWindow("Tutorial 11");
+    glutCreateWindow("Tutorial 12");
 
     InitializeGlutCallbacks();
 
