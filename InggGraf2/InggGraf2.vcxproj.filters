@@ -18,10 +18,21 @@
     <ClCompile Include="InggGraf2.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\Desktop\ogldev-master\tutorial11\pipeline.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="math_3d.h">
       <Filter>Исходные файлы</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\Desktop\ogldev-master\tutorial11\pipeline.h">
+      <Filter>Исходные файлы</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\..\Desktop\ogldev-master\tutorial11\Makefile">
+      <Filter>Исходные файлы</Filter>
+    </None>
   </ItemGroup>
 </Project>

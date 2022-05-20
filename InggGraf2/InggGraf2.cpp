@@ -15,7 +15,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-    Tutorial 08 - Scaling Transformation
+    Tutorial 11 - Concatenating transformation2
 */
 
 #include <stdio.h>
@@ -24,9 +24,9 @@
 #include <math.h>
 #include <GL/glew.h>
 #include <GL/freeglut.h>
-#include "math_3d.h"
 
 GLuint VBO;
+GLuint IBO;
 GLuint gWorldLocation;
 
 
@@ -37,20 +37,135 @@ layout (location = 0) in vec3 Position;                                         
                                                                                     \n\
 uniform mat4 gWorld;                                                                \n\
                                                                                     \n\
+out vec4 Color;                                                                     \n\
+                                                                                    \n\
 void main()                                                                         \n\
 {                                                                                   \n\
     gl_Position = gWorld * vec4(Position, 1.0);                                     \n\
+    Color = vec4(clamp(Position, 0.0, 1.0), 1.0);                                   \n\
 }";
 
 static const char* pFS = "                                                          \n\
 #version 330                                                                        \n\
                                                                                     \n\
+in vec4 Color;                                                                      \n\
+                                                                                    \n\
 out vec4 FragColor;                                                                 \n\
                                                                                     \n\
 void main()                                                                         \n\
 {                                                                                   \n\
-    FragColor = vec4(1.0, 0.0, 0.0, 1.0);                                           \n\
+    FragColor = Color;                                                              \n\
 }";
+
+
+#ifndef MATH_3D_H
+#define	MATH_3D_H
+
+#include <math.h>
+
+#define ToRadian(x) ((x) * M_PI / 180.0f)
+#define ToDegree(x) ((x) * 180.0f / M_PI)
+
+struct Vector3f
+{
+    float x;
+    float y;
+    float z;
+
+    Vector3f()
+    {
+    }
+
+    Vector3f(float _x, float _y, float _z)
+    {
+        x = _x;
+        y = _y;
+        z = _z;
+    }
+};
+
+class Matrix4f
+{
+public:
+    float m[4][4];
+
+    Matrix4f()
+    {
+    }
+
+
+    inline void InitIdentity()
+    {
+        m[0][0] = 1.0f; m[0][1] = 0.0f; m[0][2] = 0.0f; m[0][3] = 0.0f;
+        m[1][0] = 0.0f; m[1][1] = 1.0f; m[1][2] = 0.0f; m[1][3] = 0.0f;
+        m[2][0] = 0.0f; m[2][1] = 0.0f; m[2][2] = 1.0f; m[2][3] = 0.0f;
+        m[3][0] = 0.0f; m[3][1] = 0.0f; m[3][2] = 0.0f; m[3][3] = 1.0f;
+    }
+
+    inline Matrix4f operator*(const Matrix4f& Right) const
+    {
+        Matrix4f Ret;
+
+        for (unsigned int i = 0; i < 4; i++) {
+            for (unsigned int j = 0; j < 4; j++) {
+                Ret.m[i][j] = m[i][0] * Right.m[0][j] +
+                    m[i][1] * Right.m[1][j] +
+                    m[i][2] * Right.m[2][j] +
+                    m[i][3] * Right.m[3][j];
+            }
+        }
+
+        return Ret;
+    }
+};
+
+
+#endif	/* MATH_3D_H */
+
+class Pipeline
+{
+public:
+    Pipeline()
+    {
+        m_scale = Vector3f(1.0f, 1.0f, 1.0f);
+        m_worldPos = Vector3f(0.0f, 0.0f, 0.0f);
+        m_rotateInfo = Vector3f(0.0f, 0.0f, 0.0f);
+    }
+
+    void Scale(float ScaleX, float ScaleY, float ScaleZ)
+    {
+        m_scale.x = ScaleX;
+        m_scale.y = ScaleY;
+        m_scale.z = ScaleZ;
+    }
+
+    void WorldPos(float x, float y, float z)
+    {
+        m_worldPos.x = x;
+        m_worldPos.y = y;
+        m_worldPos.z = z;
+    }
+
+    void Rotate(float RotateX, float RotateY, float RotateZ)
+    {
+        m_rotateInfo.x = RotateX;
+        m_rotateInfo.y = RotateY;
+        m_rotateInfo.z = RotateZ;
+    }
+
+    const Matrix4f* GetTrans();
+
+private:
+    void InitScaleTransform(Matrix4f& m) const;
+    void InitRotateTransform(Matrix4f& m) const;
+    void InitTranslationTransform(Matrix4f& m) const;
+
+    Vector3f m_scale;
+    Vector3f m_worldPos;
+    Vector3f m_rotateInfo;
+
+    Matrix4f m_transformation;
+};
 
 static void RenderSceneCB()
 {
@@ -60,20 +175,19 @@ static void RenderSceneCB()
 
     Scale += 0.001f;
 
-    Matrix4f World;
+    Pipeline p;
+    p.Scale(sinf(Scale * 0.1f), sinf(Scale * 0.1f), sinf(Scale * 0.1f));
+    p.WorldPos(sinf(Scale), 0.0f, 0.0f);
+    p.Rotate(sinf(Scale) * 90.0f, sinf(Scale) * 90.0f, sinf(Scale) * 90.0f);
 
-    World.m[0][0] = sinf(Scale); World.m[0][1] = 0.0f; World.m[0][2] = 0.0f;        World.m[0][3] = 0.0f;
-    World.m[1][0] = 0.0f; World.m[1][1] = cosf(Scale); World.m[1][2] = 0.0f;        World.m[1][3] = 0.0f;
-    World.m[2][0] = 0.0f; ; World.m[2][1] = 0.0f; ; World.m[2][2] = sinf(Scale); World.m[2][3] = 0.0f;
-    World.m[3][0] = 0.0f; ; World.m[3][1] = 0.0f; ; World.m[3][2] = 0.0f;        World.m[3][3] = 1.0f;
-
-    glUniformMatrix4fv(gWorldLocation, 1, GL_TRUE, &World.m[0][0]);
+    glUniformMatrix4fv(gWorldLocation, 1, GL_TRUE, (const GLfloat*)p.GetTrans());
 
     glEnableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
 
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);
 
     glDisableVertexAttribArray(0);
 
@@ -89,14 +203,27 @@ static void InitializeGlutCallbacks()
 
 static void CreateVertexBuffer()
 {
-    Vector3f Vertices[3];
+    Vector3f Vertices[4];
     Vertices[0] = Vector3f(-1.0f, -1.0f, 0.0f);
-    Vertices[1] = Vector3f(1.0f, -1.0f, 0.0f);
-    Vertices[2] = Vector3f(0.0f, 1.0f, 0.0f);
+    Vertices[1] = Vector3f(0.0f, -1.0f, 1.0f);
+    Vertices[2] = Vector3f(1.0f, -1.0f, 0.0f);
+    Vertices[3] = Vector3f(0.0f, 1.0f, 0.0f);
 
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), Vertices, GL_STATIC_DRAW);
+}
+
+static void CreateIndexBuffer()
+{
+    unsigned int Indices[] = { 0, 3, 1,
+                               1, 3, 2,
+                               2, 3, 0,
+                               0, 2, 1 };
+
+    glGenBuffers(1, &IBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(Indices), Indices, GL_STATIC_DRAW);
 }
 
 static void AddShader(GLuint ShaderProgram, const char* pShaderText, GLenum ShaderType)
@@ -169,7 +296,7 @@ int main(int argc, char** argv)
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
     glutInitWindowSize(1024, 768);
     glutInitWindowPosition(100, 100);
-    glutCreateWindow("Tutorial 08");
+    glutCreateWindow("Tutorial 11");
 
     InitializeGlutCallbacks();
 
@@ -183,6 +310,7 @@ int main(int argc, char** argv)
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
     CreateVertexBuffer();
+    CreateIndexBuffer();
 
     CompileShaders();
 
