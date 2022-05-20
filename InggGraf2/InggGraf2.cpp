@@ -10,6 +10,7 @@ GLuint VBO;
 GLuint gWorldLocation;
 
 
+
 static const char* pVS = "                                                          \n\
 #version 330                                                                        \n\
                                                                                     \n\
